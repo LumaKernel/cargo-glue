@@ -613,6 +613,10 @@ Do not format the output.
 
 Do not check the output.
 
+## History
+
+- cargo-glue is forked from [cargo-equip](https://github.com/qryxip/cargo-equip), which is made by [Ryo Yamashita](https://github.com/qryxip) and licensed as MIT.
+
 ## License
 
-Dual-licensed under [MIT](https://opensource.org/licenses/MIT) or [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+TBD
