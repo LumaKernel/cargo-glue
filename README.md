@@ -1,20 +1,14 @@
-# cargo-equip
-
-[![CI](https://github.com/qryxip/cargo-equip/workflows/CI/badge.svg)](https://github.com/qryxip/cargo-equip/actions?workflow=CI)
-[![codecov](https://codecov.io/gh/qryxip/cargo-equip/branch/master/graph/badge.svg)](https://codecov.io/gh/qryxip/cargo-equip/branch/master)
-[![dependency status](https://deps.rs/repo/github/qryxip/cargo-equip/status.svg)](https://deps.rs/repo/github/qryxip/cargo-equip)
-[![Crates.io](https://img.shields.io/crates/v/cargo-equip.svg)](https://crates.io/crates/cargo-equip)
-[![Crates.io](https://img.shields.io/crates/l/cargo-equip.svg)](https://crates.io/crates/cargo-equip)
+# cargo-glue
 
 A Cargo subcommand to bundle your code into one `.rs` file for competitive programming.
 
 ## Recent updates
 
-See [CHANGELOG.md](https://github.com/qryxip/cargo-equip/blob/master/CHANGELOG.md) or [Releases](https://github.com/qryxip/cargo-equip/releases) for recent updates.
+See [CHANGELOG.md](https://github.com/LumaKernel/cargo-glue/blob/master/CHANGELOG.md) or [Releases](https://github.com/LumaKernel/cargo-glue/releases) for recent updates.
 
 ## Features
 
-cargo-equip can
+cargo-glue can
 
 - bundle multiple crates,
 - bundle only used crates,
@@ -112,18 +106,18 @@ Install a `nightly` toolchain and [cargo-udeps](https://github.com/est31/cargo-u
 ### From Crates.io
 
 ```console
-❯ cargo install cargo-equip
+❯ cargo install cargo-glue
 ```
 
 ### From `master` branch
 
 ```console
-❯ cargo install cargo-equip --git https://github.com/qryxip/cargo-equip
+❯ cargo install cargo-glue --git https://github.com/LumaKernel/cargo-glue
 ```
 
 ### GitHub Releases
 
-[Releases](https://github.com/qryxip/cargo-equip/releases)
+[Releases](https://github.com/LumaKernel/cargo-glue/releases)
 
 ## Usage
 
@@ -139,12 +133,12 @@ Follow these constrants when you writing libraries to bundle.
 
 3. Use `$crate` instead of `crate` in macros.
 
-    cargo-equip replaces `$crate` in `macro_rules!` with `$crate::extern_crate_name_in_main_crate`.
+    cargo-glue replaces `$crate` in `macro_rules!` with `$crate::extern_crate_name_in_main_crate`.
     `crate` identifiers in `macro_rules!` are not modified.
 
 4. Do not use absolute path as possible.
 
-    cargo-equip replaces `crate` with `crate::extern_crate_name_in_main_crate` and `pub(crate)` with `pub(in crate::extern_crate_name_in_main_crate)`.
+    cargo-glue replaces `crate` with `crate::extern_crate_name_in_main_crate` and `pub(crate)` with `pub(in crate::extern_crate_name_in_main_crate)`.
 
     However I cannot ensure this works well.
     Use `self::` and `super::` instead of `crate::`.
@@ -155,11 +149,11 @@ Follow these constrants when you writing libraries to bundle.
     ```
 5. If possible, do not use [glob import](https://doc.rust-lang.org/book/ch07-04-bringing-paths-into-scope-with-the-use-keyword.html#the-glob-operator).
 
-    cargo-equip inserts glob imports as substitutes for [extern prelude](https://doc.rust-lang.org/reference/names/preludes.html#extern-prelude) and [`#[macro_use]`](https://doc.rust-lang.org/reference/macros-by-example.html#the-macro_use-attribute).
+    cargo-glue inserts glob imports as substitutes for [extern prelude](https://doc.rust-lang.org/reference/names/preludes.html#extern-prelude) and [`#[macro_use]`](https://doc.rust-lang.org/reference/macros-by-example.html#the-macro_use-attribute).
 
 6. Split into small separate crates as possible.
 
-    cargo-equip does not search "dependencies among items".
+    cargo-glue does not search "dependencies among items".
 
     On a website other except AtCoder, Split your library into small crates to fit in 64KiB.
 
@@ -206,7 +200,7 @@ The constraints for `bin`s/`example`s are:
 
 2. If possible, do not use glob import.
 
-    cargo-equip also inserts glob imports as it does into libraries.
+    cargo-glue also inserts glob imports as it does into libraries.
 
     ```rust
     pub use __cargo_equip::prelude::*;
@@ -240,14 +234,14 @@ fn main() -> _ {
 }
 ```
 
-Then execute `cargo-equip`.
+Then execute `cargo-glue`.
 
 ```console
 ❯ cargo equip --bin "$name"
 ```
 
 <!--
-cargo-equip outputs code like this.
+cargo-glue outputs code like this.
 It gives tentative `extern_crate_name`s like `__package_name_0_1_0` to dependencies of the dependencies.
 
 ```rust
@@ -288,7 +282,7 @@ fn main() {
     ::std::println!("{}", __mic_ans);
 }
 
-// The following code was expanded by `cargo-equip`.
+// The following code was expanded by `cargo-glue`.
 
 #[allow(unused)]
 mod __cargo_equip {
@@ -362,7 +356,7 @@ const _: () = {
 
 ## Resolving `#[cfg(…)]`
 
-By default, cargo-equip
+By default, cargo-glue
 
 1. Removes `#[cfg(always_true_predicate)]` (e.g. `cfg(feature = "enabled-feature")`).
 2. Removes items with `#[cfg(always_false_preducate)]` (e.g. `cfg(test)`, `cfg(feature = "disable-feature")`).
@@ -401,16 +395,16 @@ pub mod a {
 
 ## Checking the output
 
-By default, cargo-equip creates a temporary package that shares the current target directory and execute `cargo check` before outputting.
+By default, cargo-glue creates a temporary package that shares the current target directory and execute `cargo check` before outputting.
 
 ```console
-    Checking cargo-equip-check-output-6j2i3j3tgtugeaqm v0.1.0 (/tmp/cargo-equip-check-output-6j2i3j3tgtugeaqm)
+    Checking cargo-glue-check-output-6j2i3j3tgtugeaqm v0.1.0 (/tmp/cargo-glue-check-output-6j2i3j3tgtugeaqm)
     Finished dev [unoptimized + debuginfo] target(s) in 0.11s
 ```
 
 ## Expanding procedural macros
 
-cargo-equip can expand procedural macros.
+cargo-glue can expand procedural macros.
 
 ```rust
 use memoise::memoise;
@@ -512,7 +506,7 @@ fn fib(n: i64) -> i64 {
     ret
 }
 
-// The following code was expanded by `cargo-equip`.
+// The following code was expanded by `cargo-glue`.
 
 #[allow(unused)]
 mod __cargo_equip {
@@ -566,7 +560,7 @@ const _: () = {
 -->
 
 - `proc-macro` crates need to be compile with Rust 1.48.0+.
-   If version of the active toolchain is less than 1.48.0, cargo-equip finds an alternative toolchain and uses it for compiling `proc-macro`s.
+   If version of the active toolchain is less than 1.48.0, cargo-glue finds an alternative toolchain and uses it for compiling `proc-macro`s.
 - procedural macros re-exported with `pub use $name::*;` are also able to be expanded.
 
 ## Options
