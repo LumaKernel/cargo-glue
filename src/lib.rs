@@ -1,4 +1,5 @@
-#![forbid(unsafe_code)]
+// TODO: unsafe
+//#![forbid(unsafe_code)]
 #![warn(rust_2018_idioms)]
 #![recursion_limit = "256"]
 
@@ -21,9 +22,9 @@ use crate::{
     },
 };
 use anyhow::Context as _;
-use cargo_metadata as cm;
 use indoc::indoc;
 use itertools::{iproduct, Itertools as _};
+use krates::cm as kcm;
 use krates::PkgSpec;
 use maplit::{btreeset, hashmap, hashset};
 use petgraph::{
@@ -636,9 +637,9 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
 
 #[allow(clippy::too_many_arguments)]
 fn bundle(
-    metadata: &cm::Metadata,
+    metadata: &kcm::Metadata,
     root_crate: RootCrate<'_>,
-    libs_to_bundle: &BTreeMap<&cm::PackageId, (&cm::Target, String)>,
+    libs_to_bundle: &BTreeMap<&kcm::PackageId, (&kcm::Target, String)>,
     mine: &[User],
     cargo_equip_mod_name: &syn::Ident,
     resolve_cfgs: bool,
@@ -694,8 +695,20 @@ fn bundle(
 
             let proc_macro_crate_dylibs = &ra_proc_macro::list_proc_macro_dylibs(
                 cargo_messages_for_proc_macro_dll_paths,
-                |p| libs_to_bundle.contains_key(p),
-            );
+                |p| {
+                    let p = kcm::PackageId {
+                        repr: p.repr.clone(),
+                    };
+                    libs_to_bundle.contains_key(&p)
+                },
+            )
+            .into_iter()
+            .map(|(p, v)| {
+                // TODO: unsafe
+                let p = unsafe { std::mem::transmute::<&_, &kcm::PackageId>(p) };
+                (p, v)
+            })
+            .collect::<BTreeMap<_, _>>();
 
             ProcMacroExpander::spawn(proc_macro_srv_exe, proc_macro_crate_dylibs)
         })
@@ -720,7 +733,7 @@ fn bundle(
     let resolve_nodes = metadata
         .resolve
         .as_ref()
-        .map(|cm::Resolve { nodes, .. }| &nodes[..])
+        .map(|kcm::Resolve { nodes, .. }| &nodes[..])
         .unwrap_or(&[])
         .iter()
         .map(|node| (&node.id, node))
@@ -829,10 +842,10 @@ fn bundle(
         .into_iter()
         .map(
             |(lib_package, (lib_target, pseudo_extern_crate_name, mut edit))| {
-                let lib_package: &cm::Package = &metadata[lib_package];
+                let lib_package: &kcm::Package = &metadata[lib_package];
 
                 if let Some(names) = proc_macro_names.get(&lib_package.id) {
-                    debug_assert_eq!(["proc-macro".to_owned()], *lib_target.kind);
+                    debug_assert_eq!([kcm::TargetKind::ProcMacro], *lib_target.kind);
                     let names = names
                         .iter()
                         .map(|name| {
@@ -883,7 +896,7 @@ fn bundle(
                     ));
                 }
 
-                let cm::Node { features, .. } = resolve_nodes[&lib_package.id];
+                let kcm::Node { features, .. } = resolve_nodes[&lib_package.id];
 
                 let translate_extern_crate_name = |dst: &_| -> _ {
                     let dst_package =
@@ -947,7 +960,7 @@ fn bundle(
                 ))
             },
         )
-        .collect::<anyhow::Result<Vec<(&str, (&cm::Package, String, String, String))>>>()?;
+        .collect::<anyhow::Result<Vec<(&str, (&kcm::Package, String, String, String))>>>()?;
 
     if !libs.is_empty() {
         if !root_crate.package().authors.is_empty() {
@@ -972,7 +985,7 @@ fn bundle(
                 doc: &mut String,
                 title: &str,
                 cargo_equip_mod_name: &syn::Ident,
-                contents: impl Iterator<Item = (Option<&'a str>, &'a cm::Package)>,
+                contents: impl Iterator<Item = (Option<&'a str>, &'a kcm::Package)>,
             ) {
                 let mut table = Table::new();
 
@@ -1216,7 +1229,7 @@ fn bundle(
         code = rustfmt::rustfmt(
             &metadata.workspace_root,
             &code,
-            &root_crate.package().edition,
+            root_crate.package().edition.as_str(),
         )?;
     }
 
@@ -1224,11 +1237,11 @@ fn bundle(
 }
 
 fn normal_non_host_dep_graph<'cm>(
-    resolve_nodes: &HashMap<&'cm cm::PackageId, &cm::Node>,
-    libs_to_bundle: &BTreeMap<&'cm cm::PackageId, (&cm::Target, String)>,
+    resolve_nodes: &HashMap<&'cm kcm::PackageId, &kcm::Node>,
+    libs_to_bundle: &BTreeMap<&'cm kcm::PackageId, (&kcm::Target, String)>,
 ) -> (
-    Graph<&'cm cm::PackageId, ()>,
-    HashMap<&'cm cm::PackageId, NodeIndex>,
+    Graph<&'cm kcm::PackageId, ()>,
+    HashMap<&'cm kcm::PackageId, NodeIndex>,
 ) {
     let mut graph = Graph::new();
     let mut indices = hashmap!();
@@ -1237,14 +1250,14 @@ fn normal_non_host_dep_graph<'cm>(
     }
     for (from_pkg, (from_crate, _)) in libs_to_bundle {
         if from_crate.is_lib() {
-            for cm::NodeDep {
+            for kcm::NodeDep {
                 pkg: to, dep_kinds, ..
             } in &resolve_nodes[from_pkg].deps
             {
                 if *from_pkg != to
                     && dep_kinds
                         .iter()
-                        .any(|cm::DepKindInfo { kind, .. }| *kind == cm::DependencyKind::Normal)
+                        .any(|kcm::DepKindInfo { kind, .. }| *kind == kcm::DependencyKind::Normal)
                     && libs_to_bundle.contains_key(to)
                 {
                     graph.add_edge(indices[to], indices[*from_pkg], ());
@@ -1257,24 +1270,24 @@ fn normal_non_host_dep_graph<'cm>(
 
 #[derive(Clone, Copy)]
 enum RootCrate<'cm> {
-    BinLike(&'cm cm::Package, &'cm cm::Target),
-    Lib(&'cm cm::Package, &'cm cm::Target),
+    BinLike(&'cm kcm::Package, &'cm kcm::Target),
+    Lib(&'cm kcm::Package, &'cm kcm::Target),
 }
 
 impl<'cm> RootCrate<'cm> {
-    fn split(self) -> (&'cm cm::Package, &'cm cm::Target) {
+    fn split(self) -> (&'cm kcm::Package, &'cm kcm::Target) {
         match self {
             RootCrate::BinLike(p, t) | RootCrate::Lib(p, t) => (p, t),
         }
     }
 
-    fn package(self) -> &'cm cm::Package {
+    fn package(self) -> &'cm kcm::Package {
         match self {
             RootCrate::BinLike(p, _) | RootCrate::Lib(p, _) => p,
         }
     }
 
-    fn bin_like(self) -> Option<(&'cm cm::Package, &'cm cm::Target)> {
+    fn bin_like(self) -> Option<(&'cm kcm::Package, &'cm kcm::Target)> {
         match self {
             RootCrate::BinLike(p, t) => Some((p, t)),
             RootCrate::Lib(..) => None,

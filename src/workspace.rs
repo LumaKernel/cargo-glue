@@ -8,6 +8,7 @@ use cargo_util::ProcessBuilder;
 use if_chain::if_chain;
 use indoc::indoc;
 use itertools::Itertools as _;
+use krates::cm as kcm;
 use krates::PkgSpec;
 use rand::Rng as _;
 use serde::Deserialize;
@@ -32,15 +33,18 @@ pub(crate) fn locate_project(cwd: &Path) -> anyhow::Result<PathBuf> {
         })
 }
 
-pub(crate) fn cargo_metadata(manifest_path: &Path, cwd: &Path) -> cm::Result<cm::Metadata> {
-    cm::MetadataCommand::new()
+pub(crate) fn cargo_metadata(
+    manifest_path: &Path,
+    cwd: &Path,
+) -> Result<kcm::Metadata, kcm::Error> {
+    kcm::MetadataCommand::new()
         .manifest_path(manifest_path)
         .current_dir(cwd)
         .exec()
 }
 
 pub(crate) fn resolve_behavior(
-    package: &cm::Package,
+    package: &kcm::Package,
     workspace_root: &Utf8Path,
 ) -> anyhow::Result<ResolveBehavior> {
     let cargo_toml = &cargo_util::paths::read(workspace_root.join("Cargo.toml").as_ref())?;
@@ -63,9 +67,9 @@ pub(crate) fn resolve_behavior(
 
 pub(crate) fn cargo_check_message_format_json(
     toolchain: &str,
-    metadata: &cm::Metadata,
-    package: &cm::Package,
-    krate: &cm::Target,
+    metadata: &kcm::Metadata,
+    package: &kcm::Package,
+    krate: &kcm::Target,
     shell: &mut Shell,
 ) -> anyhow::Result<Vec<cm::Message>> {
     let messages = ProcessBuilder::new(toolchain::rustup_exe(package.manifest_dir())?)
@@ -90,9 +94,9 @@ pub(crate) fn cargo_check_message_format_json(
 }
 
 pub(crate) fn list_out_dirs<'cm>(
-    metadata: &'cm cm::Metadata,
+    metadata: &'cm kcm::Metadata,
     messages: &[cm::Message],
-) -> BTreeMap<&'cm cm::PackageId, Utf8PathBuf> {
+) -> BTreeMap<&'cm kcm::PackageId, Utf8PathBuf> {
     messages
         .iter()
         .flat_map(|message| match message {
@@ -100,16 +104,21 @@ pub(crate) fn list_out_dirs<'cm>(
                 package_id,
                 out_dir,
                 ..
-            }) => Some((&metadata[package_id].id, out_dir.clone())),
+            }) => {
+                let package_id = kcm::PackageId {
+                    repr: package_id.repr.clone(),
+                };
+                Some((&metadata[&package_id].id, out_dir.clone()))
+            }
             _ => None,
         })
         .collect()
 }
 
 pub(crate) fn cargo_check_using_current_lockfile_and_cache(
-    metadata: &cm::Metadata,
-    package: &cm::Package,
-    target: &cm::Target,
+    metadata: &kcm::Metadata,
+    package: &kcm::Package,
+    target: &kcm::Target,
     exclude: &[PkgSpec],
     code: &str,
 ) -> anyhow::Result<()> {
@@ -149,7 +158,7 @@ pub(crate) fn cargo_check_using_current_lockfile_and_cache(
     .unwrap();
 
     temp_manifest["package"]["name"] = toml_edit::value(package_name);
-    temp_manifest["package"]["edition"] = toml_edit::value(&*package.edition);
+    temp_manifest["package"]["edition"] = toml_edit::value(package.edition.as_str());
     let mut tbl = toml_edit::Table::new();
     tbl["name"] = toml_edit::value(crate_name);
     tbl["path"] = toml_edit::value(format!("{}.rs", crate_name));
@@ -172,10 +181,14 @@ pub(crate) fn cargo_check_using_current_lockfile_and_cache(
     let renames = package
         .dependencies
         .iter()
-        .filter(|cm::Dependency { kind, .. }| {
-            [cm::DependencyKind::Normal, cm::DependencyKind::Development].contains(kind)
+        .filter(|kcm::Dependency { kind, .. }| {
+            [
+                kcm::DependencyKind::Normal,
+                kcm::DependencyKind::Development,
+            ]
+            .contains(kind)
         })
-        .flat_map(|cm::Dependency { rename, .. }| rename)
+        .flat_map(|kcm::Dependency { rename, .. }| rename)
         .collect::<HashSet<_>>();
 
     let modify_dependencies = |table: &mut toml_edit::Table| {
@@ -185,12 +198,12 @@ pub(crate) fn cargo_check_using_current_lockfile_and_cache(
             .expect("`resolve` is `null`")
             .nodes
             .iter()
-            .find(|cm::Node { id, .. }| *id == package.id)
+            .find(|kcm::Node { id, .. }| *id == package.id)
             .expect("should contain")
             .deps
             .iter()
-            .filter(|cm::NodeDep { pkg, .. }| !exclude.iter().any(|s| s.matches(&metadata[pkg])))
-            .map(|cm::NodeDep { name, pkg, .. }| {
+            .filter(|kcm::NodeDep { pkg, .. }| !exclude.iter().any(|s| s.matches(&metadata[pkg])))
+            .map(|kcm::NodeDep { name, pkg, .. }| {
                 if renames.contains(&name) {
                     name
                 } else {
@@ -255,41 +268,41 @@ pub(crate) fn cargo_check_using_current_lockfile_and_cache(
 }
 
 pub(crate) trait MetadataExt {
-    fn exactly_one_target(&self) -> anyhow::Result<(&cm::Target, &cm::Package)>;
-    fn lib_target(&self) -> anyhow::Result<(&cm::Target, &cm::Package)>;
+    fn exactly_one_target(&self) -> anyhow::Result<(&kcm::Target, &kcm::Package)>;
+    fn lib_target(&self) -> anyhow::Result<(&kcm::Target, &kcm::Package)>;
     fn bin_target_by_name<'a>(
         &'a self,
         name: &str,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)>;
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)>;
     fn example_target_by_name<'a>(
         &'a self,
         name: &str,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)>;
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)>;
     fn target_by_src_path<'a>(
         &'a self,
         src_path: &Path,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)>;
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)>;
     fn libs_to_bundle<'a>(
         &'a self,
-        package_id: &'a cm::PackageId,
+        package_id: &'a kcm::PackageId,
         need_dev_deps: bool,
         cargo_udeps_outcome: &HashSet<String>,
         exclude: &[PkgSpec],
-    ) -> anyhow::Result<BTreeMap<&'a cm::PackageId, (&'a cm::Target, String)>>;
+    ) -> anyhow::Result<BTreeMap<&'a kcm::PackageId, (&'a kcm::Target, String)>>;
     fn dep_lib_by_extern_crate_name(
         &self,
-        package_id: &cm::PackageId,
+        package_id: &kcm::PackageId,
         extern_crate_name: &str,
-    ) -> Option<&cm::Package>;
+    ) -> Option<&kcm::Package>;
     fn libs_with_extern_crate_names(
         &self,
-        package_id: &cm::PackageId,
-        only: &HashSet<&cm::PackageId>,
-    ) -> anyhow::Result<BTreeMap<&cm::PackageId, String>>;
+        package_id: &kcm::PackageId,
+        only: &HashSet<&kcm::PackageId>,
+    ) -> anyhow::Result<BTreeMap<&kcm::PackageId, String>>;
 }
 
-impl MetadataExt for cm::Metadata {
-    fn exactly_one_target(&self) -> anyhow::Result<(&cm::Target, &cm::Package)> {
+impl MetadataExt for kcm::Metadata {
+    fn exactly_one_target(&self) -> anyhow::Result<(&kcm::Target, &kcm::Package)> {
         let root_package = self.root_package();
         match (
             &*targets_in_ws(self)
@@ -329,7 +342,7 @@ impl MetadataExt for cm::Metadata {
         }
     }
 
-    fn lib_target(&self) -> anyhow::Result<(&cm::Target, &cm::Package)> {
+    fn lib_target(&self) -> anyhow::Result<(&kcm::Target, &kcm::Package)> {
         let root_package = self.root_package();
         match (
             &*targets_in_ws(self)
@@ -352,21 +365,21 @@ impl MetadataExt for cm::Metadata {
     fn bin_target_by_name<'a>(
         &'a self,
         name: &str,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)> {
-        target_by_kind_and_name(self, "bin", name)
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)> {
+        target_by_kind_and_name(self, &kcm::TargetKind::Bin, name)
     }
 
     fn example_target_by_name<'a>(
         &'a self,
         name: &str,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)> {
-        target_by_kind_and_name(self, "example", name)
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)> {
+        target_by_kind_and_name(self, &kcm::TargetKind::Example, name)
     }
 
     fn target_by_src_path<'a>(
         &'a self,
         src_path: &Path,
-    ) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)> {
+    ) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)> {
         match *targets_in_ws(self)
             .filter(|(t, _)| t.src_path == src_path)
             .collect::<Vec<_>>()
@@ -385,20 +398,24 @@ impl MetadataExt for cm::Metadata {
 
     fn libs_to_bundle<'a>(
         &'a self,
-        package_id: &'a cm::PackageId,
+        package_id: &'a kcm::PackageId,
         need_dev_deps: bool,
         cargo_udeps_outcome: &HashSet<String>,
         exclude: &[PkgSpec],
-    ) -> anyhow::Result<BTreeMap<&'a cm::PackageId, (&'a cm::Target, String)>> {
+    ) -> anyhow::Result<BTreeMap<&'a kcm::PackageId, (&'a kcm::Target, String)>> {
         let package = &self[package_id];
 
         let renames = package
             .dependencies
             .iter()
-            .filter(|cm::Dependency { kind, .. }| {
-                [cm::DependencyKind::Normal, cm::DependencyKind::Development].contains(kind)
+            .filter(|kcm::Dependency { kind, .. }| {
+                [
+                    kcm::DependencyKind::Normal,
+                    kcm::DependencyKind::Development,
+                ]
+                .contains(kind)
             })
-            .flat_map(|cm::Dependency { rename, .. }| rename)
+            .flat_map(|kcm::Dependency { rename, .. }| rename)
             .collect::<HashSet<_>>();
 
         let preds = {
@@ -419,26 +436,36 @@ impl MetadataExt for cm::Metadata {
             .flat_map(cfg_expr::Expression::predicates)
             .collect::<Vec<_>>();
 
-        let cm::Resolve { nodes, .. } = self
+        let kcm::Resolve { nodes, .. } = self
             .resolve
             .as_ref()
             .with_context(|| "`resolve` is `null`")?;
         let nodes = nodes.iter().map(|n| (&n.id, n)).collect::<HashMap<_, _>>();
 
-        let satisfies = |node_dep: &cm::NodeDep, accepts_dev: bool| -> _ {
+        let satisfies = |node_dep: &kcm::NodeDep, accepts_dev: bool| -> _ {
+            if node_dep.name == "proconio".to_owned() {
+                let e = exclude
+                    .iter()
+                    .filter(|e| e.name == "proconio".to_string())
+                    .collect::<Vec<_>>()
+                    .get(0)
+                    .cloned()
+                    .unwrap();
+                let krate = &self[&node_dep.pkg];
+            }
             if exclude.iter().any(|s| s.matches(&self[&node_dep.pkg])) {
                 return false;
             }
 
-            let cm::Node { features, .. } = &nodes[&node_dep.pkg];
+            let kcm::Node { features, .. } = &nodes[&node_dep.pkg];
             let features = features.iter().map(|s| &**s).collect::<HashSet<_>>();
 
             node_dep
                 .dep_kinds
                 .iter()
-                .any(|cm::DepKindInfo { kind, target, .. }| {
-                    (*kind == cm::DependencyKind::Normal
-                        || accepts_dev && *kind == cm::DependencyKind::Development)
+                .any(|kcm::DepKindInfo { kind, target, .. }| {
+                    (*kind == kcm::DependencyKind::Normal
+                        || accepts_dev && *kind == kcm::DependencyKind::Development)
                         && target
                             .as_ref()
                             .and_then(|target| {
@@ -458,7 +485,7 @@ impl MetadataExt for cm::Metadata {
         if nodes[package_id]
             .deps
             .iter()
-            .any(|cm::NodeDep { dep_kinds, .. }| dep_kinds.is_empty())
+            .any(|kcm::NodeDep { dep_kinds, .. }| dep_kinds.is_empty())
         {
             bail!("this tool requires Rust 1.41+ for calculating dependencies");
         }
@@ -466,13 +493,19 @@ impl MetadataExt for cm::Metadata {
         let mut deps = nodes[package_id]
             .deps
             .iter()
-            .filter(|node_dep| satisfies(node_dep, need_dev_deps))
+            .filter(|node_dep| {
+                let s = satisfies(node_dep, need_dev_deps);
+                s
+            })
             .flat_map(|node_dep| {
                 let lib_package = &self[&node_dep.pkg];
                 let lib_target =
-                    lib_package.targets.iter().find(|cm::Target { kind, .. }| {
-                        *kind == ["lib".to_owned()] || *kind == ["proc-macro".to_owned()]
-                    })?;
+                    lib_package
+                        .targets
+                        .iter()
+                        .find(|kcm::Target { kind, .. }| {
+                            *kind == [kcm::TargetKind::Lib] || *kind == [kcm::TargetKind::ProcMacro]
+                        })?;
                 let (lib_extern_crate_name, lib_name_in_toml) = if renames.contains(&node_dep.name)
                 {
                     (node_dep.name.clone(), &node_dep.name)
@@ -500,16 +533,16 @@ impl MetadataExt for cm::Metadata {
         while {
             let next = deps
                 .iter()
-                .filter(|(_, (cm::Target { kind, .. }, _))| *kind == ["lib".to_owned()])
+                .filter(|(_, (kcm::Target { kind, .. }, _))| *kind == [kcm::TargetKind::Lib])
                 .map(|(package_id, _)| nodes[package_id])
-                .flat_map(|cm::Node { deps, .. }| deps)
+                .flat_map(|kcm::Node { deps, .. }| deps)
                 .filter(|node_dep| {
                     satisfies(node_dep, false) && all_package_ids.insert(&node_dep.pkg)
                 })
-                .flat_map(|cm::NodeDep { pkg, .. }| {
+                .flat_map(|kcm::NodeDep { pkg, .. }| {
                     let package = &self[pkg];
-                    let target = package.targets.iter().find(|cm::Target { kind, .. }| {
-                        *kind == ["lib".to_owned()] || *kind == ["proc-macro".to_owned()]
+                    let target = package.targets.iter().find(|kcm::Target { kind, .. }| {
+                        *kind == [kcm::TargetKind::Lib] || *kind == [kcm::TargetKind::ProcMacro]
                     })?;
                     let mut extern_crate_name = format!(
                         "__{}_{}",
@@ -535,9 +568,9 @@ impl MetadataExt for cm::Metadata {
 
     fn dep_lib_by_extern_crate_name(
         &self,
-        package_id: &cm::PackageId,
+        package_id: &kcm::PackageId,
         extern_crate_name: &str,
-    ) -> Option<&cm::Package> {
+    ) -> Option<&kcm::Package> {
         // https://docs.rs/cargo/0.47.0/src/cargo/core/resolver/resolve.rs.html#323-352
 
         let package = &self[package_id];
@@ -546,13 +579,13 @@ impl MetadataExt for cm::Metadata {
             .resolve
             .as_ref()
             .into_iter()
-            .flat_map(|cm::Resolve { nodes, .. }| nodes)
-            .find(|cm::Node { id, .. }| id == package_id)?;
+            .flat_map(|kcm::Resolve { nodes, .. }| nodes)
+            .find(|kcm::Node { id, .. }| id == package_id)?;
 
         let found_explicitly_renamed_one = package
             .dependencies
             .iter()
-            .flat_map(|cm::Dependency { rename, .. }| rename)
+            .flat_map(|kcm::Dependency { rename, .. }| rename)
             .any(|rename| rename == extern_crate_name);
 
         if found_explicitly_renamed_one {
@@ -560,7 +593,7 @@ impl MetadataExt for cm::Metadata {
                 &self[&node
                     .deps
                     .iter()
-                    .find(|cm::NodeDep { name, .. }| name == extern_crate_name)
+                    .find(|kcm::NodeDep { name, .. }| name == extern_crate_name)
                     .expect("found the dep in `dependencies`, not in `resolve.deps`")
                     .pkg],
             )
@@ -571,7 +604,7 @@ impl MetadataExt for cm::Metadata {
                 .flat_map(|p| p.targets.iter().map(move |t| (t, p)))
                 .find(|(t, _)| {
                     t.crate_name() == extern_crate_name
-                        && (*t.kind == ["lib".to_owned()] || *t.kind == ["proc-macro".to_owned()])
+                        && (t.is_lib() || t.is_proc_macro())
                 })
                 .map(|(_, p)| p)
                 .or_else(|| {
@@ -583,46 +616,44 @@ impl MetadataExt for cm::Metadata {
 
     fn libs_with_extern_crate_names(
         &self,
-        package_id: &cm::PackageId,
-        only: &HashSet<&cm::PackageId>,
-    ) -> anyhow::Result<BTreeMap<&cm::PackageId, String>> {
+        package_id: &kcm::PackageId,
+        only: &HashSet<&kcm::PackageId>,
+    ) -> anyhow::Result<BTreeMap<&kcm::PackageId, String>> {
         let package = &self[package_id];
 
         let renames = package
             .dependencies
             .iter()
-            .flat_map(|cm::Dependency { rename, .. }| rename)
+            .flat_map(|kcm::Dependency { rename, .. }| rename)
             .collect::<HashSet<_>>();
 
-        let cm::Resolve { nodes, .. } =
+        let kcm::Resolve { nodes, .. } =
             self.resolve.as_ref().with_context(|| "`resolve` is null")?;
 
-        let cm::Node { deps, .. } = nodes
+        let kcm::Node { deps, .. } = nodes
             .iter()
-            .find(|cm::Node { id, .. }| id == package_id)
+            .find(|kcm::Node { id, .. }| id == package_id)
             .with_context(|| "could not find the node")?;
 
         Ok(deps
             .iter()
-            .filter(|cm::NodeDep { pkg, dep_kinds, .. }| {
+            .filter(|kcm::NodeDep { pkg, dep_kinds, .. }| {
                 matches!(
                     &**dep_kinds,
-                    [cm::DepKindInfo {
-                        kind: cm::DependencyKind::Normal,
+                    [kcm::DepKindInfo {
+                        kind: kcm::DependencyKind::Normal,
                         ..
                     }]
                 ) && only.contains(pkg)
             })
-            .flat_map(|cm::NodeDep { name, pkg, .. }| {
+            .flat_map(|kcm::NodeDep { name, pkg, .. }| {
                 let extern_crate_name = if renames.contains(name) {
                     name.clone()
                 } else {
                     self[pkg]
                         .targets
                         .iter()
-                        .find(|cm::Target { kind, .. }| {
-                            *kind == ["lib".to_owned()] || *kind == ["proc-macro".to_owned()]
-                        })?
+                        .find(|target| target.is_lib() || target.is_proc_macro())?
                         .crate_name()
                 };
                 Some((pkg, extern_crate_name))
@@ -632,29 +663,29 @@ impl MetadataExt for cm::Metadata {
 }
 
 fn target_by_kind_and_name<'a>(
-    metadata: &'a cm::Metadata,
-    kind: &str,
+    metadata: &'a kcm::Metadata,
+    kind: &kcm::TargetKind,
     name: &str,
-) -> anyhow::Result<(&'a cm::Target, &'a cm::Package)> {
+) -> anyhow::Result<(&'a kcm::Target, &'a kcm::Package)> {
     match *targets_in_ws(metadata)
         .filter(|(t, _)| t.name == name && t.kind == [kind.to_owned()])
         .collect::<Vec<_>>()
     {
-        [] => bail!("no {} target named `{}`", kind, name),
+        [] => bail!("no {} target named `{}`", format!("{:?}", kind), name),
         [target] => Ok(target),
         [..] => bail!(
             "multiple {} targets named `{}` in this workspace",
-            kind,
+            format!("{:?}", kind),
             name,
         ),
     }
 }
 
-fn targets_in_ws(metadata: &cm::Metadata) -> impl Iterator<Item = (&cm::Target, &cm::Package)> {
+fn targets_in_ws(metadata: &kcm::Metadata) -> impl Iterator<Item = (&kcm::Target, &kcm::Package)> {
     metadata
         .packages
         .iter()
-        .filter(move |cm::Package { id, .. }| metadata.workspace_members.contains(id))
+        .filter(move |kcm::Package { id, .. }| metadata.workspace_members.contains(id))
         .flat_map(|p| p.targets.iter().map(move |t| (t, p)))
 }
 
@@ -662,13 +693,13 @@ pub(crate) trait PackageExt {
     fn has_custom_build(&self) -> bool;
     fn has_lib(&self) -> bool;
     fn has_proc_macro(&self) -> bool;
-    fn lib_like_target(&self) -> Option<&cm::Target>;
+    fn lib_like_target(&self) -> Option<&kcm::Target>;
     fn manifest_dir(&self) -> &Utf8Path;
     fn edition(&self) -> Edition;
     fn read_license_text(&self, mine: &[User], cache_dir: &Path) -> anyhow::Result<Option<String>>;
 }
 
-impl PackageExt for cm::Package {
+impl PackageExt for kcm::Package {
     fn has_custom_build(&self) -> bool {
         self.targets.iter().any(TargetExt::is_custom_build)
     }
@@ -681,10 +712,10 @@ impl PackageExt for cm::Package {
         self.targets.iter().any(TargetExt::is_proc_macro)
     }
 
-    fn lib_like_target(&self) -> Option<&cm::Target> {
-        self.targets.iter().find(|cm::Target { kind, .. }| {
-            [&["lib".to_owned()][..], &["proc-macro".to_owned()][..]].contains(&&**kind)
-        })
+    fn lib_like_target(&self) -> Option<&kcm::Target> {
+        self.targets
+            .iter()
+            .find(|target| target.is_lib() || target.is_proc_macro())
     }
 
     fn manifest_dir(&self) -> &Utf8Path {
@@ -692,7 +723,10 @@ impl PackageExt for cm::Package {
     }
 
     fn edition(&self) -> Edition {
-        self.edition.parse().expect("`edition` modified invalidly")
+        self.edition
+            .as_str()
+            .parse()
+            .expect("`edition` modified invalidly")
     }
 
     fn read_license_text(&self, mine: &[User], cache_dir: &Path) -> anyhow::Result<Option<String>> {
@@ -704,7 +738,7 @@ pub(crate) trait PackageIdExt {
     fn mask_path(&self) -> String;
 }
 
-impl PackageIdExt for cm::PackageId {
+impl PackageIdExt for kcm::PackageId {
     fn mask_path(&self) -> String {
         if_chain! {
             if let [s1, s2] = *self.repr.split(" (path+").collect::<Vec<_>>();
@@ -732,25 +766,25 @@ pub(crate) trait TargetExt {
     fn target_option(&self) -> Vec<&str>;
 }
 
-impl TargetExt for cm::Target {
+impl TargetExt for kcm::Target {
     fn is_bin(&self) -> bool {
-        self.kind == ["bin".to_owned()]
+        self.kind == [kcm::TargetKind::Bin]
     }
 
     fn is_example(&self) -> bool {
-        self.kind == ["example".to_owned()]
+        self.kind == [kcm::TargetKind::Example]
     }
 
     fn is_custom_build(&self) -> bool {
-        self.kind == ["custom-build".to_owned()]
+        self.kind == [kcm::TargetKind::CustomBuild]
     }
 
     fn is_lib(&self) -> bool {
-        self.kind == ["lib".to_owned()]
+        self.kind == [kcm::TargetKind::Lib]
     }
 
     fn is_proc_macro(&self) -> bool {
-        self.kind == ["proc-macro".to_owned()]
+        self.kind == [kcm::TargetKind::ProcMacro]
     }
 
     fn crate_name(&self) -> String {
@@ -772,7 +806,7 @@ trait SourceExt {
     fn rev_git(&self) -> Option<(&str, &str)>;
 }
 
-impl SourceExt for cm::Source {
+impl SourceExt for kcm::Source {
     fn rev_git(&self) -> Option<(&str, &str)> {
         let url = self.repr.strip_prefix("git+")?;
         match *url.split('#').collect::<Vec<_>>() {
