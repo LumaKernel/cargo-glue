@@ -132,7 +132,7 @@ pub(crate) fn cargo_check_using_current_lockfile_and_cache(
             })
             .collect::<Vec<_>>();
         let suf = str::from_utf8(&suf).expect("should be valid ASCII");
-        format!("cargo-equip-check-output-{}", suf)
+        format!("cargo-glue-check-output-{}", suf)
     };
     let crate_name = &*if target.is_lib() {
         package_name.replace('-', "_")
@@ -322,7 +322,7 @@ impl MetadataExt for kcm::Metadata {
                 "could not determine which target to choose. Use the `--bin` option, `--example` \
                  option, `--lib` option, or `--src` option to specify a target.\n\
                  available targets: {}\n\
-                 note: currently `cargo-equip` does not support the `default-run` manifest key.",
+                 note: currently `cargo-glue` does not support the `default-run` manifest key.",
                 ts.iter()
                     .map(|(target, _)| format!(
                         "{}{}",

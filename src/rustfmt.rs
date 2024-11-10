@@ -8,7 +8,7 @@ pub(crate) fn rustfmt(
     edition: &str,
 ) -> anyhow::Result<String> {
     let tempfile = tempfile::Builder::new()
-        .prefix("cargo-equip-")
+        .prefix("cargo-glue-")
         .suffix(".rs")
         .tempfile()?
         .into_temp_path();

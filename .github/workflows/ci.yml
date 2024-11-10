@@ -13,7 +13,7 @@ on:
   pull_request:
 
 env:
-  CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN: nightly-2023-08-04
+  CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN: nightly-2023-08-04
 
 jobs:
   rustfmt:
@@ -46,10 +46,10 @@ jobs:
         with:
           components: llvm-tools-preview, rustfmt
 
-      - name: Set up `${{ env.CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN }}`
+      - name: Set up `${{ env.CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN }}`
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN }}
+          toolchain: ${{ env.CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN }}
 
       - name: Install cargo-binstall
         uses: taiki-e/install-action@cargo-binstall
@@ -118,10 +118,10 @@ jobs:
           targets: ${{ matrix.target-triple }}
           components: clippy
 
-      - name: Set up `${{ env.CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN }}`
+      - name: Set up `${{ env.CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN }}`
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN }}
+          toolchain: ${{ env.CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN }}
           targets: ${{ matrix.target-triple }}
           profile: minimal
 
@@ -154,7 +154,7 @@ jobs:
         run: cargo +${{ matrix.channel }} install --path . --debug --target ${{ matrix.target-triple }}
 
       - name: cargo-udeps
-        run: cargo +${{ env.CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN }} udeps --all-targets
+        run: cargo +${{ env.CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN }} udeps --all-targets
 
   upload-archives:
     strategy:
@@ -192,7 +192,7 @@ jobs:
       - name: Create an asset
         id: asset
         run: |
-          BIN_TARGET=cargo-equip
+          BIN_TARGET=cargo-glue
           if ${{ contains(matrix.target-triple, 'pc-windows') }}; then
             DOT_EXE=.exe
           fi

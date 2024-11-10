@@ -103,7 +103,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-equip"
+name = "cargo-glue"
 version = "1.0.0-alpha.1"
 dependencies = [
  "anyhow",

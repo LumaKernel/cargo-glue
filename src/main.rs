@@ -2,7 +2,7 @@
 #![warn(rust_2018_idioms)]
 
 use anyhow::Context as _;
-use cargo_equip::{shell::Shell, Context, Opt};
+use cargo_glue::{shell::Shell, Context, Opt};
 use std::env;
 use structopt::{clap, StructOpt};
 
@@ -16,11 +16,11 @@ fn main() {
             cwd: env::current_dir().with_context(|| "could not get the current direcotry")?,
             cache_dir: dirs_next::cache_dir()
                 .with_context(|| "could not find the cache directory")?
-                .join("cargo-equip"),
+                .join("cargo-glue"),
             shell: &mut shell,
         };
 
-        cargo_equip::run(opt, ctx)
+        cargo_glue::run(opt, ctx)
     })();
 
     if let Err(err) = result {

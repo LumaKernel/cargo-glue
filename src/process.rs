@@ -5,7 +5,7 @@ use std::{env, fmt, io, path::PathBuf, process::Stdio};
 pub(crate) fn cargo_exe() -> anyhow::Result<PathBuf> {
     env::var_os("CARGO")
         .with_context(|| {
-            "missing `$CARGO`. run this program with `cargo equip`, not `cargo-equip equip`"
+            "missing `$CARGO`. run this program with `cargo glue`, not `cargo-glue glue`"
         })
         .map(Into::into)
 }
