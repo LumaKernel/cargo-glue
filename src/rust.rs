@@ -101,7 +101,7 @@ fn replace_ranges(code: &str, replacements: BTreeMap<(LineColumn, LineColumn), S
     while let Some((i, s)) = lines.next() {
         for (j, c) in s.chars().enumerate() {
             if_chain! {
-                if let Some(((start, end), replacement)) = replacements.get(0);
+                if let Some(((start, end), replacement)) = replacements.first();
                 if (i, j) == (start.line - 1, start.column);
                 then {
                     ret += replacement;
@@ -119,7 +119,7 @@ fn replace_ranges(code: &str, replacements: BTreeMap<(LineColumn, LineColumn), S
                 }
             }
         }
-        while let Some(((start, end), replacement)) = replacements.get(0) {
+        while let Some(((start, end), replacement)) = replacements.first() {
             if i == start.line - 1 {
                 ret += replacement;
                 if start < end {
