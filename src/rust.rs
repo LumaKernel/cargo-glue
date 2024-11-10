@@ -19,6 +19,7 @@ use syn::{
     parse_quote,
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
+    token::Colon2,
     visit::{self, Visit},
     Arm, AttrStyle, Attribute, BareFnArg, ConstParam, Expr, ExprArray, ExprAssign, ExprAssignOp,
     ExprAsync, ExprAwait, ExprBinary, ExprBlock, ExprBox, ExprBreak, ExprCall, ExprCast,
@@ -223,10 +224,30 @@ pub(crate) fn allow_unused_imports_for_seemingly_proc_macros(
                             &name.ident.to_string(),
                         ) =>
                     {
+                        let s = {
+                            let mut s = i.span().start();
+                            s.line -= 1;
+                            s.column = usize::MAX;
+                            s
+                        };
                         self.replacements.insert(
-                            (i.span().start(), i.span().start()),
+                            (s, i.span().start()),
                             "#[allow(unused_imports)]\n".to_owned(),
                         );
+                        let self_inserted = {
+                            let mut j = i.clone();
+                            j.tree = UseTree::Path(UsePath {
+                                ident: Ident::new("self", Span::call_site()),
+                                colon2_token: Colon2 {
+                                    spans: [i.span(), i.span()],
+                                },
+                                tree: Box::new(j.tree),
+                            });
+                            let mut tokens = TokenStream::new();
+                            j.to_tokens(&mut tokens);
+                            tokens.to_string()
+                        };
+                        self.replacements.insert((s, i.span().end()), self_inserted);
                     }
                     UseTree::Group(UseGroup { items, .. }) => {
                         for pair in items.pairs() {
