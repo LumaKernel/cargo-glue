@@ -6,8 +6,6 @@
 [![Crates.io](https://img.shields.io/crates/v/cargo-equip.svg)](https://crates.io/crates/cargo-equip)
 [![Crates.io](https://img.shields.io/crates/l/cargo-equip.svg)](https://crates.io/crates/cargo-equip)
 
-[日本語](https://github.com/qryxip/cargo-equip/blob/master/README-ja.md)
-
 A Cargo subcommand to bundle your code into one `.rs` file for competitive programming.
 
 ## Recent updates

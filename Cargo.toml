@@ -1,11 +1,11 @@
 [package]
 name = "cargo-equip"
-version = "0.20.2-alpha.1"
-edition = "2018"
-license = "MIT OR Apache-2.0"
+version = "1.0.0-alpha.1"
+edition = "2021"
+license = "MIT-0"
 description = "A Cargo subcommand to bundle your code into one `.rs` file for competitive programming."
-repository = "https://github.com/qryxip/cargo-equip"
-keywords = ["competitive", "cli", "windows"]
+repository = "https://github.com/LumaKernel/cargo-glue"
+keywords = ["competitive", "competition", "bundler", "bundle"]
 categories = ["command-line-utilities", "development-tools::cargo-plugins"]
 
 [dependencies]
@@ -19,7 +19,7 @@ derive_more = "0.99.17"
 dirs-next = "2.0.0"
 fixedbitset = "0.4.2"
 if_chain = "1.0.2"
-indoc = "1.0.9"
+indoc = "2.0.5"
 itertools = "0.10.5"
 krates = "0.8.1"
 maplit = "1.0.2"

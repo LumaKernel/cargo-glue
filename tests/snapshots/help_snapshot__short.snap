@@ -1,5 +1,6 @@
 ---
 source: tests/help-snapshot.rs
+assertion_line: 6
 expression: "run(\"-h\")?"
 ---
 cargo-equip <version>
@@ -27,7 +28,6 @@ OPTIONS:
         --exclude-atcoder-202301-crates               Alias for `--exclude {crates available on AtCoder 202301}`
         --exclude-codingame-crates                    Alias for `--exclude {crates available on CodinGame}`
         --mine <DOMAIN_AND_USERNAME>...               Do not include license and copyright notices for the users
-        --toolchain <TOOLCHAIN>                       [Deprecated] Alias for `--toolchain-for-udeps`
         --toolchain-for-udeps <TOOLCHAIN>             `nightly` toolchain for `cargo-udeps` [default: nightly]
         --toolchain-for-proc-macro-srv <TOOLCHAIN>    Toolchain for expanding procedural macros
         --mod-path <MODULE_PATH>                      Expand the libraries to the module [default: crate::__cargo_equip]
@@ -39,12 +39,6 @@ OPTIONS:
         --no-rustfmt                                  Do not format the output before emitting
         --no-check                                    Do not check the output before emitting
     -o, --output <PATH>                               Write to the file instead of STDOUT
-        --oneline <MINIFY>
-            [Deprecated] Alias for `--minify` [default: none]  [possible values: none, libs, all]
-
-        --resolve-cfgs                                [Deprecated] No-op
-        --rustfmt                                     [Deprecated] No-op
-        --check                                       [Deprecated] No-op
     -h, --help                                        Prints help information
     -V, --version                                     Prints version information
 

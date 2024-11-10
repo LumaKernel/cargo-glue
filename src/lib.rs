@@ -166,10 +166,6 @@ pub struct OptEquip {
     )]
     mine: Vec<User>,
 
-    /// [Deprecated] Alias for `--toolchain-for-udeps`
-    #[structopt(long, value_name("TOOLCHAIN"), conflicts_with("toolchain_for_udeps"))]
-    toolchain: Option<String>,
-
     /// `nightly` toolchain for `cargo-udeps`
     #[structopt(long, value_name("TOOLCHAIN"), default_value("nightly"))]
     toolchain_for_udeps: String,
@@ -254,27 +250,6 @@ pub struct OptEquip {
     /// Write to the file instead of STDOUT
     #[structopt(short, long, value_name("PATH"))]
     output: Option<PathBuf>,
-
-    /// [Deprecated] Alias for `--minify`
-    #[structopt(
-        long,
-        value_name("MINIFY"),
-        possible_values(Minify::VARIANTS),
-        default_value("none")
-    )]
-    oneline: Minify,
-
-    /// [Deprecated] No-op
-    #[structopt(long, conflicts_with("no_resolve_cfgs"))]
-    resolve_cfgs: bool,
-
-    /// [Deprecated] No-op
-    #[structopt(long, conflicts_with("no_rustfmt"))]
-    rustfmt: bool,
-
-    /// [Deprecated] No-op
-    #[structopt(long, conflicts_with("no_check"))]
-    check: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -284,22 +259,22 @@ pub enum User {
 }
 
 impl FromStr for User {
-    type Err = &'static str;
+    type Err = String;
 
-    fn from_str(s: &str) -> Result<Self, &'static str> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         return if let Some(username) = s.strip_prefix("github.com/") {
-            Ok(Self::Github(username.to_owned()))
+            Ok(Self::Github(username.to_string()))
         } else if let Some(username) = s.strip_prefix("gitlab.com/") {
-            Ok(Self::GitlabCom(username.to_owned()))
+            Ok(Self::GitlabCom(username.to_string()))
         } else {
-            Err(MSG)
+            let msg = indoc! {r"
+                Supported formats:
+                * github.com/{{username}}
+                * gitlab.com/{{username}}
+            "}
+            .to_string();
+            Err(msg)
         };
-
-        static MSG: &str = indoc! {r"
-            Supported formats:
-            * github.com/{username}
-            * gitlab.com/{username}
-        "};
     }
 }
 
@@ -507,7 +482,6 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         exclude_atcoder_202301_crates,
         exclude_codingame_crates,
         mine,
-        toolchain: deprecated_toolchain_opt,
         toolchain_for_udeps,
         toolchain_for_proc_macro_srv,
         mod_path: CrateSinglePath(cargo_equip_mod_name),
@@ -517,16 +491,7 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         no_rustfmt,
         no_check,
         output,
-        oneline: deprecated_oneline_opt,
-        resolve_cfgs: deprecated_resolve_cfgs_flag,
-        rustfmt: deprecated_rustfmt_flag,
-        check: deprecated_check_flag,
     }) = opt;
-
-    let minify = match (minify, deprecated_oneline_opt) {
-        (Minify::None, oneline) => oneline,
-        (minify, _) => minify,
-    };
 
     let exclude = {
         let mut exclude = exclude;
@@ -542,28 +507,11 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         exclude
     };
 
-    let toolchain_for_udeps = deprecated_toolchain_opt
-        .as_ref()
-        .unwrap_or(&toolchain_for_udeps);
-
     let Context {
         cwd,
         cache_dir,
         shell,
     } = ctx;
-
-    if deprecated_toolchain_opt.is_some() {
-        shell.warn("`--toolchain` was renamed to `--toolchain-for-udeps`")?;
-    }
-    if deprecated_resolve_cfgs_flag {
-        shell.warn("`--resolve-cfgs` is deprecated. `#[cfg(..)]`s are resolved by default")?;
-    }
-    if deprecated_rustfmt_flag {
-        shell.warn("`--rustfmt` is deprecated. the output is formatted by default")?;
-    }
-    if deprecated_check_flag {
-        shell.warn("`--check` is deprecated. the output is checked by default")?;
-    }
 
     let manifest_path = if let Some(manifest_path) = manifest_path {
         cwd.join(manifest_path.strip_prefix(".").unwrap_or(&manifest_path))
@@ -600,7 +548,7 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         let unused_deps = &if root.is_lib() {
             hashset!()
         } else {
-            match cargo_udeps::cargo_udeps(root_package, root, toolchain_for_udeps, shell) {
+            match cargo_udeps::cargo_udeps(root_package, root, &toolchain_for_udeps, shell) {
                 Ok(unused_deps) => unused_deps,
                 Err(warning) => {
                     shell.warn(warning)?;

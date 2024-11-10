@@ -1,5 +1,6 @@
 ---
 source: tests/help-snapshot.rs
+assertion_line: 7
 expression: "run(\"--help\")?"
 ---
 cargo-equip <version>
@@ -162,9 +163,6 @@ OPTIONS:
             * github.com/{username}
             * gitlab.com/{username}
              
-        --toolchain <TOOLCHAIN>                       
-            [Deprecated] Alias for `--toolchain-for-udeps`
-
         --toolchain-for-udeps <TOOLCHAIN>             
             `nightly` toolchain for `cargo-udeps` [default: nightly]
 
@@ -216,18 +214,6 @@ OPTIONS:
 
     -o, --output <PATH>                               
             Write to the file instead of STDOUT
-
-        --oneline <MINIFY>
-            [Deprecated] Alias for `--minify` [default: none]  [possible values: none, libs, all]
-
-        --resolve-cfgs                                
-            [Deprecated] No-op
-
-        --rustfmt                                     
-            [Deprecated] No-op
-
-        --check                                       
-            [Deprecated] No-op
 
     -h, --help                                        
             Prints help information

@@ -68,7 +68,7 @@ fn snapshot_test(name: &str, _: MutexGuard<'_, ()>) -> anyhow::Result<String> {
         cargo_equip::Opt::from_iter_safe(&[
             "",
             "equip",
-            "--toolchain",
+            "--toolchain-for-udeps",
             &env::var("CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN")
                 .unwrap_or_else(|_| "nightly".to_owned()),
             "--remove",

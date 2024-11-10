@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0] - TODO: TBD
+
+### Destructive Changes
+
+- Deleted features marked as deprecated.
+    - `--toolchain`
+    - `--oneline`
+    - `--resolve-cfgs`
+    - `--rustfmt`
+    - `--check`
+- TODO: Drop support for edition 2018
+
+## Original Changelog
+
+Lines under here is taken from original repository.
+========== ========== ========== ==========
+========== ========== ========== ==========
+
 ## [0.20.1] - 2023-08-06Z
 
 ### Fixed
