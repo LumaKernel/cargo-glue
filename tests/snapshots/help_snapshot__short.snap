@@ -1,6 +1,5 @@
 ---
 source: tests/help-snapshot.rs
-assertion_line: 6
 expression: "run(\"-h\")?"
 ---
 cargo-equip <version>
@@ -26,6 +25,7 @@ OPTIONS:
         --exclude <SPEC>...                           Exclude library crates from bundling
         --exclude-atcoder-crates                      Alias for `--exclude {crates available on AtCoder}`
         --exclude-atcoder-202301-crates               Alias for `--exclude {crates available on AtCoder 202301}`
+        --exclude-atcoder-202308-crates               Alias for `--exclude {crates available on AtCoder 202308}`
         --exclude-codingame-crates                    Alias for `--exclude {crates available on CodinGame}`
         --mine <DOMAIN_AND_USERNAME>...               Do not include license and copyright notices for the users
         --toolchain-for-udeps <TOOLCHAIN>             `nightly` toolchain for `cargo-udeps` [default: nightly]
@@ -41,4 +41,3 @@ OPTIONS:
     -o, --output <PATH>                               Write to the file instead of STDOUT
     -h, --help                                        Prints help information
     -V, --version                                     Prints version information
-
