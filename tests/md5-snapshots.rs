@@ -1,4 +1,4 @@
-use cargo_equip::shell::Shell;
+use cargo_glue::shell::Shell;
 use insta::assert_snapshot;
 use once_cell::sync::Lazy;
 use std::{
@@ -64,13 +64,12 @@ md5_snapshot_tests! {
 fn snapshot_test(name: &str, _: MutexGuard<'_, ()>) -> anyhow::Result<String> {
     let stdout = Rc::new(RefCell::default());
 
-    cargo_equip::run(
-        cargo_equip::Opt::from_iter_safe(&[
+    cargo_glue::run(
+        cargo_glue::Opt::from_iter_safe(&[
             "",
-            "equip",
+            "glue",
             "--toolchain-for-udeps",
-            &env::var("CARGO_EQUIP_TEST_NIGHTLY_TOOLCHAIN")
-                .unwrap_or_else(|_| "nightly".to_owned()),
+            &env::var("CARGO_GLUE_TEST_NIGHTLY_TOOLCHAIN").unwrap_or_else(|_| "nightly".to_owned()),
             "--remove",
             "docs",
             "--minify",
@@ -78,7 +77,7 @@ fn snapshot_test(name: &str, _: MutexGuard<'_, ()>) -> anyhow::Result<String> {
             "--bin",
             &name.replace('_', "-"),
         ])?,
-        cargo_equip::Context {
+        cargo_glue::Context {
             cwd: Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("tests")
                 .join("solutions"),

@@ -69,7 +69,7 @@ mod sub {
 ↓
 
 ```console
-❯ cargo equip \
+❯ cargo glue \
 >       --remove docs `# Remove doc comments` \
 >       --minify libs `# Minify each library` \
 >       --bin sqrt_mod `# Specify the bin crate` | xsel -b
@@ -203,18 +203,18 @@ The constraints for `bin`s/`example`s are:
     cargo-glue also inserts glob imports as it does into libraries.
 
     ```rust
-    pub use __cargo_equip::prelude::*;
+    pub use __cargo_glue::prelude::*;
 
     // ︙
 
-    pub mod __cargo_equip {
+    pub mod __cargo_glue {
         pub mod crates {
             // ︙
         }
         // ︙
 
         pub(crate) prelude {
-            pub use crate::__cargo_equip::crates::*;
+            pub use crate::__cargo_glue::crates::*;
         }
     }
     ```
@@ -237,7 +237,7 @@ fn main() -> _ {
 Then execute `cargo-glue`.
 
 ```console
-❯ cargo equip --bin "$name"
+❯ cargo glue --bin "$name"
 ```
 
 <!--
@@ -247,15 +247,15 @@ It gives tentative `extern_crate_name`s like `__package_name_0_1_0` to dependenc
 ```rust
 //! # Bundled libraries
 //!
-//! - `mic 0.0.0 (path+███████████████████████████████████████████)`                                                                                      published in https://github.com/qryxip/mic licensed under `CC0-1.0` as `crate::__cargo_equip::crates::mic`
-//! - `qryxip-competitive-input 0.0.0 (git+https://github.com/qryxip/competitive-programming-library#dadeb6e4685a86f25b4e5c8079f56337321aa12e)`                                                      licensed under `CC0-1.0` as `crate::__cargo_equip::crates::input`
-//! - `qryxip-competitive-partition-point 0.0.0 (git+https://github.com/qryxip/competitive-programming-library#dadeb6e4685a86f25b4e5c8079f56337321aa12e)`                                            licensed under `CC0-1.0` as `crate::__cargo_equip::crates::partition_point`
+//! - `mic 0.0.0 (path+███████████████████████████████████████████)`                                                                                      published in https://github.com/qryxip/mic licensed under `CC0-1.0` as `crate::__cargo_glue::crates::mic`
+//! - `qryxip-competitive-input 0.0.0 (git+https://github.com/qryxip/competitive-programming-library#dadeb6e4685a86f25b4e5c8079f56337321aa12e)`                                                      licensed under `CC0-1.0` as `crate::__cargo_glue::crates::input`
+//! - `qryxip-competitive-partition-point 0.0.0 (git+https://github.com/qryxip/competitive-programming-library#dadeb6e4685a86f25b4e5c8079f56337321aa12e)`                                            licensed under `CC0-1.0` as `crate::__cargo_glue::crates::partition_point`
 //!
 //! # Procedural macros
 //!
 //! - `mic_impl 0.0.0 (path+████████████████████████████████████████████████████)` published in https://github.com/qryxip/mic licensed under `CC0-1.0`
 
-pub use __cargo_equip::prelude::*;
+pub use __cargo_glue::prelude::*;
 
 use input::input;
 #[allow(unused_imports)]
@@ -272,32 +272,32 @@ fn main() -> _ {
 }*/
 fn main() {
     #[allow(unused_imports)]
-    use crate::__cargo_equip::crates::mic::__YouCannotRecurseIfTheOutputTypeIsInferred as main;
+    use crate::__cargo_glue::crates::mic::__YouCannotRecurseIfTheOutputTypeIsInferred as main;
     let __mic_ans = (move || -> _ {
         input! {a:[u64],}
         a.into_iter()
             .map(|a| (1u64..1_000_000_000).partition_point(|ans| ans.pow(2) < a))
     })();
-    let __mic_ans = {#[allow(unused_imports)]use/*::*/crate::__cargo_equip::crates::mic::functions::*;join("\n")(__mic_ans)};
+    let __mic_ans = {#[allow(unused_imports)]use/*::*/crate::__cargo_glue::crates::mic::functions::*;join("\n")(__mic_ans)};
     ::std::println!("{}", __mic_ans);
 }
 
 // The following code was expanded by `cargo-glue`.
 
 #[allow(unused)]
-mod __cargo_equip {
+mod __cargo_glue {
     pub(crate) mod crates {
         pub mod mic {
-            use crate::__cargo_equip::preludes::mic::*;
+            use crate::__cargo_glue::preludes::mic::*;
             // ︙
         }
 
         pub mod __mic_impl_0_0_0 {
-            pub use crate::__cargo_equip::macros::__mic_impl_0_0_0::*;
+            pub use crate::__cargo_glue::macros::__mic_impl_0_0_0::*;
         }
 
         pub mod input {
-            pub use crate::__cargo_equip::macros::input::*;
+            pub use crate::__cargo_glue::macros::input::*;
             // ︙
         }
 
@@ -327,12 +327,12 @@ mod __cargo_equip {
     }
 
     pub(crate) mod prelude {
-        pub use crate::__cargo_equip::crates::*;
+        pub use crate::__cargo_glue::crates::*;
     }
 
     mod preludes {
         pub mod mic {
-            pub(in crate::__cargo_equip) use crate::__cargo_equip::crates::__mic_impl_0_0_0 as mic_impl;
+            pub(in crate::__cargo_glue) use crate::__cargo_glue::crates::__mic_impl_0_0_0 as mic_impl;
         }
 
         pub mod __mic_impl_0_0_0 {}
@@ -365,7 +365,7 @@ Predicates are evaluated according to this rule.
 
 - [`test`](https://doc.rust-lang.org/reference/conditional-compilation.html#test): `false`
 - [`proc_macro`](https://doc.rust-lang.org/reference/conditional-compilation.html#proc_macro): `false`
-- `cargo_equip`: `true`
+- `cargo_glue`: `true`
 - [`feature`](https://doc.rust-lang.org/cargo/reference/features.html): `true` for those enabled
 - Otherwise: unknown
 
@@ -438,7 +438,7 @@ fn fib(n: i64) -> i64 {
 //! - `memoise 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)`         licensed under `BSD-3-Clause`
 //! - `proconio-derive 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)` licensed under `MIT OR Apache-2.0`
 
-pub use __cargo_equip::prelude::*;
+pub use __cargo_glue::prelude::*;
 
 #[allow(unused_imports)]
 use memoise::memoise;
@@ -509,14 +509,14 @@ fn fib(n: i64) -> i64 {
 // The following code was expanded by `cargo-glue`.
 
 #[allow(unused)]
-mod __cargo_equip {
+mod __cargo_glue {
     pub(crate) mod crates {
         pub mod memoise {
-            pub use crate::__cargo_equip::macros::memoise::*;
+            pub use crate::__cargo_glue::macros::memoise::*;
         }
 
         pub mod proconio_derive {
-            pub use crate::__cargo_equip::macros::proconio_derive::*;
+            pub use crate::__cargo_glue::macros::proconio_derive::*;
         }
     }
 
@@ -537,7 +537,7 @@ mod __cargo_equip {
     }
 
     pub(crate) mod prelude {
-        pub use crate::__cargo_equip::crates::*;
+        pub use crate::__cargo_glue::crates::*;
     }
 
     mod preludes {

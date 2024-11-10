@@ -2,7 +2,7 @@
 source: tests/help-snapshot.rs
 expression: "run(\"-h\")?"
 ---
-cargo-equip <version>
+cargo-glue <version>
 Ryo Yamashita <qryxip@gmail.com>
 
 A Cargo subcommand to bundle your code into one `.rs` file for competitive programming.
@@ -10,11 +10,11 @@ A Cargo subcommand to bundle your code into one `.rs` file for competitive progr
 Use -h for short descriptions and --help for more detials.
 
 USAGE:
-    cargo equip [OPTIONS]
-    cargo equip [OPTIONS] --lib
-    cargo equip [OPTIONS] --bin <NAME>
-    cargo equip [OPTIONS] --example <NAME>
-    cargo equip [OPTIONS] --src <PATH>
+    cargo glue [OPTIONS]
+    cargo glue [OPTIONS] --lib
+    cargo glue [OPTIONS] --bin <NAME>
+    cargo glue [OPTIONS] --example <NAME>
+    cargo glue [OPTIONS] --src <PATH>
 
 OPTIONS:
         --src <PATH>                                  Bundle the lib/bin/example target and its dependencies
@@ -30,7 +30,7 @@ OPTIONS:
         --mine <DOMAIN_AND_USERNAME>...               Do not include license and copyright notices for the users
         --toolchain-for-udeps <TOOLCHAIN>             `nightly` toolchain for `cargo-udeps` [default: nightly]
         --toolchain-for-proc-macro-srv <TOOLCHAIN>    Toolchain for expanding procedural macros
-        --mod-path <MODULE_PATH>                      Expand the libraries to the module [default: crate::__cargo_equip]
+        --mod-path <MODULE_PATH>                      Expand the libraries to the module [default: crate::__cargo_glue]
         --remove <REMOVE>...                          Remove some part [possible values: docs, comments]
         --minify <MINIFY>
             Minify part of the output before emitting [default: none]  [possible values: none, libs, all]

@@ -29,7 +29,7 @@ pub(super) fn read_non_unlicense_license_file(
     return read(package, cache_dir).map_err(|causes| {
         let err = anyhow!(
             "could not read the license file of `{}`.\n\
-             note: cargo-equip no longer reads `package.authors` to skip Copyright and License \
+             note: cargo-glue no longer reads `package.authors` to skip Copyright and License \
              Notices.\n      \
              instead, add `--mine github.com/{{your username}}` to the arguments",
             package.id
@@ -313,7 +313,7 @@ fn read_git_sha1(package: &kcm::Package) -> anyhow::Result<String> {
 
 fn find_in_git_repos(url: &str, sha1: &str, file_names: &[&str]) -> anyhow::Result<Option<String>> {
     let tempdir = tempfile::Builder::new()
-        .prefix("cargo-equip-git-clone-")
+        .prefix("cargo-glue-git-clone-")
         .tempdir()?;
 
     ProcessBuilder::new("git")

@@ -50,7 +50,7 @@ use structopt::{clap::AppSettings, StructOpt};
 #[derive(StructOpt, Debug)]
 #[structopt(
     author("Ryo Yamashita <qryxip@gmail.com>"),
-    about("Please run as `cargo equip`, not `cargo-equip`."),
+    about("Please run as `cargo glue`, not `cargo-glue`."),
     bin_name("cargo"),
     global_settings(&[AppSettings::DeriveDisplayOrder, AppSettings::UnifiedHelpMessage])
 )]
@@ -64,18 +64,18 @@ pub enum Opt {
         "#}),
         author("Ryo Yamashita <qryxip@gmail.com>"),
         usage(
-            r#"cargo equip [OPTIONS]
-    cargo equip [OPTIONS] --lib
-    cargo equip [OPTIONS] --bin <NAME>
-    cargo equip [OPTIONS] --example <NAME>
-    cargo equip [OPTIONS] --src <PATH>"#,
+            r#"cargo glue [OPTIONS]
+    cargo glue [OPTIONS] --lib
+    cargo glue [OPTIONS] --bin <NAME>
+    cargo glue [OPTIONS] --example <NAME>
+    cargo glue [OPTIONS] --src <PATH>"#,
         )
     )]
-    Equip(OptEquip),
+    Glue(OptGlue),
 }
 
 #[derive(StructOpt, Debug)]
-pub struct OptEquip {
+pub struct OptGlue {
     /// Bundle the lib/bin/example target and its dependencies
     #[structopt(
         long,
@@ -189,7 +189,7 @@ pub struct OptEquip {
     toolchain_for_proc_macro_srv: Option<String>,
 
     /// Expand the libraries to the module
-    #[structopt(long, value_name("MODULE_PATH"), default_value("crate::__cargo_equip"))]
+    #[structopt(long, value_name("MODULE_PATH"), default_value("crate::__cargo_glue"))]
     mod_path: CrateSinglePath,
 
     /// Remove some part [possible values: docs, comments]
@@ -550,7 +550,7 @@ static CODINGAME_CRATES: &[&str] = &[
 ];
 
 pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
-    let Opt::Equip(OptEquip {
+    let Opt::Glue(OptGlue {
         src,
         lib,
         bin,
@@ -564,7 +564,7 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         mine,
         toolchain_for_udeps,
         toolchain_for_proc_macro_srv,
-        mod_path: CrateSinglePath(cargo_equip_mod_name),
+        mod_path: CrateSinglePath(cargo_glue_mod_name),
         remove,
         minify,
         no_resolve_cfgs,
@@ -622,8 +622,8 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
     let resolve_behavior = workspace::resolve_behavior(root_package, &metadata.workspace_root)?;
     if resolve_behavior >= ResolveBehavior::V2 {
         shell.warn(
-            "Currently cargo-equip only support Feature Resovler v1, and may go search more crates \
-             than real Cargo does. Please watch https://github.com/qryxip/cargo-equip/issues/94",
+            "Currently cargo-glue only support Feature Resovler v1, and may go search more crates \
+             than real Cargo does. Please watch https://github.com/LumaKernel/cargo-glue/issues/94",
         )?;
     }
 
@@ -656,7 +656,7 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
             .map(|(package_id, (_, pseudo_extern_crate_name))| {
                 format!(
                     "- `{}` as `crate::{}::crates::{}`\n",
-                    package_id, cargo_equip_mod_name, pseudo_extern_crate_name,
+                    package_id, cargo_glue_mod_name, pseudo_extern_crate_name,
                 )
             })
             .join("");
@@ -686,7 +686,7 @@ pub fn run(opt: Opt, ctx: Context<'_>) -> anyhow::Result<()> {
         },
         &libs_to_bundle,
         &mine,
-        &cargo_equip_mod_name,
+        &cargo_glue_mod_name,
         !no_resolve_cfgs,
         &remove,
         minify,
@@ -723,7 +723,7 @@ fn bundle(
     root_crate: RootCrate<'_>,
     libs_to_bundle: &BTreeMap<&kcm::PackageId, (&kcm::Target, String)>,
     mine: &[User],
-    cargo_equip_mod_name: &syn::Ident,
+    cargo_glue_mod_name: &syn::Ident,
     resolve_cfgs: bool,
     remove: &[Remove],
     minify: Minify,
@@ -824,7 +824,7 @@ fn bundle(
     let mut code = if let Some((_, bin_target)) = root_crate.bin_like() {
         let code = cargo_util::paths::read(bin_target.src_path.as_ref())?;
         if rust::find_skip_attribute(&code)? {
-            shell.status("Found", "`#![cfg_attr(cargo_equip, cargo_equip::skip)]`")?;
+            shell.status("Found", "`#![cfg_attr(cargo_glue, cargo_glue::skip)]`")?;
             return Ok(code);
         }
         code
@@ -836,7 +836,7 @@ fn bundle(
 
     if let Some((bin_package, bin_target)) = root_crate.bin_like() {
         code = rust::process_bin(
-            cargo_equip_mod_name,
+            cargo_glue_mod_name,
             &bin_target.src_path,
             { macro_expander }.as_mut(),
             |extern_crate_name| {
@@ -857,7 +857,7 @@ fn bundle(
     let libs = libs_to_bundle
         .iter()
         .map(|(pkg, (krate, pseudo_extern_crate_name))| {
-            let mut edit = CodeEdit::new(cargo_equip_mod_name, &krate.src_path, || {
+            let mut edit = CodeEdit::new(cargo_glue_mod_name, &krate.src_path, || {
                 (krate.crate_name(), &pkg.repr)
             })?;
             if let Some(out_dir) = out_dirs.get(pkg) {
@@ -933,14 +933,14 @@ fn bundle(
                         .map(|name| {
                             let rename = format!(
                                 "{}_macro_def_{}_{}",
-                                cargo_equip_mod_name, pseudo_extern_crate_name, name,
+                                cargo_glue_mod_name, pseudo_extern_crate_name, name,
                             );
                             (name, rename)
                         })
                         .collect::<Vec<_>>();
                     let crate_mod_content = format!(
                         "pub use crate::{}::macros::{}::*;{}",
-                        cargo_equip_mod_name,
+                        cargo_glue_mod_name,
                         pseudo_extern_crate_name,
                         names
                             .iter()
@@ -1052,7 +1052,7 @@ fn bundle(
             shell.warn("instead, add `--mine github.com/{your username}` to the arguments")?;
         }
 
-        code = rust::insert_prelude_for_main_crate(&code, cargo_equip_mod_name)?;
+        code = rust::insert_prelude_for_main_crate(&code, cargo_glue_mod_name)?;
 
         code =
             rust::allow_unused_imports_for_seemingly_proc_macros(&code, |mod_name, item_name| {
@@ -1066,7 +1066,7 @@ fn bundle(
             fn list_packages<'a>(
                 doc: &mut String,
                 title: &str,
-                cargo_equip_mod_name: &syn::Ident,
+                cargo_glue_mod_name: &syn::Ident,
                 contents: impl Iterator<Item = (Option<&'a str>, &'a kcm::Package)>,
             ) {
                 let mut table = Table::new();
@@ -1101,7 +1101,7 @@ fn bundle(
                     if let Some(pseudo_extern_crate_name) = pseudo_extern_crate_name {
                         row.add_cell(cell!(format!(
                             "as `crate::{}::crates::{}`",
-                            cargo_equip_mod_name, pseudo_extern_crate_name,
+                            cargo_glue_mod_name, pseudo_extern_crate_name,
                         )));
                     }
 
@@ -1125,7 +1125,7 @@ fn bundle(
             list_packages(
                 &mut doc,
                 "Bundled libraries",
-                cargo_equip_mod_name,
+                cargo_glue_mod_name,
                 libs.iter()
                     .filter(|(_, (p, _, _, _))| p.has_lib())
                     .map(|(k, (p, _, _, _))| (Some(*k), *p)),
@@ -1134,7 +1134,7 @@ fn bundle(
             list_packages(
                 &mut doc,
                 "Procedural macros",
-                cargo_equip_mod_name,
+                cargo_glue_mod_name,
                 libs.iter()
                     .filter(|(_, (p, _, _, _))| p.has_proc_macro())
                     .map(|(_, (p, _, _, _))| (None, *p)),
@@ -1188,9 +1188,9 @@ fn bundle(
         code += "\n";
         code += &match root_crate {
             RootCrate::BinLike(..) => {
-                "// The following code was expanded by `cargo-equip`.\n".to_owned()
+                "// The following code was expanded by `cargo-glue`.\n".to_owned()
             }
-            RootCrate::Lib(..) => format!("use {}::prelude::*;\n", cargo_equip_mod_name),
+            RootCrate::Lib(..) => format!("use {}::prelude::*;\n", cargo_glue_mod_name),
         };
         code += "\n";
 
@@ -1245,7 +1245,7 @@ fn bundle(
             code += "#[cfg_attr(any(), rustfmt::skip)]\n";
         }
         code += "#[allow(unused)]\n";
-        code += &format!("mod {} {{\n", cargo_equip_mod_name);
+        code += &format!("mod {} {{\n", cargo_glue_mod_name);
         code += "    pub(crate) mod crates {\n";
         render_mods(&mut code, &crate_mods)?;
         code += "    }\n";
@@ -1274,7 +1274,7 @@ fn bundle(
 
                     format!(
                         "pub use crate::{}::{};",
-                        cargo_equip_mod_name,
+                        cargo_glue_mod_name,
                         if let Some(local_macro_uses_in_main_crate) = local_macro_uses_in_main_crate
                         {
                             format!("{{crates::*,macros::{}}}", local_macro_uses_in_main_crate)
@@ -1290,7 +1290,7 @@ fn bundle(
                 };
             }
             RootCrate::Lib(_, krate) => {
-                code += &format!("pub use crate::{}::crates::", cargo_equip_mod_name);
+                code += &format!("pub use crate::{}::crates::", cargo_glue_mod_name);
                 code += &krate.crate_name();
                 code += ";";
             }
