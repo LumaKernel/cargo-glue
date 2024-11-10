@@ -318,7 +318,7 @@ impl MetadataExt for kcm::Metadata {
             }
             ([], None) => bail!("no lib/bin/example target in this workspace"),
             ([t], _) => Ok(*t),
-            ([ts @ ..], _) => bail!(
+            (ts, _) => bail!(
                 "could not determine which target to choose. Use the `--bin` option, `--example` \
                  option, `--lib` option, or `--src` option to specify a target.\n\
                  available targets: {}\n\
@@ -443,16 +443,6 @@ impl MetadataExt for kcm::Metadata {
         let nodes = nodes.iter().map(|n| (&n.id, n)).collect::<HashMap<_, _>>();
 
         let satisfies = |node_dep: &kcm::NodeDep, accepts_dev: bool| -> _ {
-            if node_dep.name == "proconio".to_owned() {
-                let e = exclude
-                    .iter()
-                    .filter(|e| e.name == "proconio".to_string())
-                    .collect::<Vec<_>>()
-                    .get(0)
-                    .cloned()
-                    .unwrap();
-                let krate = &self[&node_dep.pkg];
-            }
             if exclude.iter().any(|s| s.matches(&self[&node_dep.pkg])) {
                 return false;
             }
@@ -493,10 +483,7 @@ impl MetadataExt for kcm::Metadata {
         let mut deps = nodes[package_id]
             .deps
             .iter()
-            .filter(|node_dep| {
-                let s = satisfies(node_dep, need_dev_deps);
-                s
-            })
+            .filter(|node_dep| satisfies(node_dep, need_dev_deps))
             .flat_map(|node_dep| {
                 let lib_package = &self[&node_dep.pkg];
                 let lib_target =
@@ -756,6 +743,7 @@ impl PackageIdExt for kcm::PackageId {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) trait TargetExt {
     fn is_bin(&self) -> bool;
     fn is_example(&self) -> bool;
