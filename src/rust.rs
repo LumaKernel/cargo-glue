@@ -334,6 +334,14 @@ pub(crate) struct CodeEdit<'opt> {
     replacements: BTreeMap<(LineColumn, LineColumn), String>,
 }
 
+fn import_ident_to_path_part(ident: &Ident) -> String {
+    let ident = ident.to_string();
+    ident
+        .strip_prefix("r#")
+        .map(|s| s.to_string())
+        .unwrap_or(ident)
+}
+
 impl<'opt> CodeEdit<'opt> {
     pub(crate) fn new<'cm>(
         cargo_glue_mod_name: &'opt Ident,
@@ -387,19 +395,19 @@ impl<'opt> CodeEdit<'opt> {
                     } else if depth == 0 || src_path.file_name() == Some("mod.rs") {
                         vec![
                             src_path
-                                .with_file_name(ident.to_string())
+                                .with_file_name(import_ident_to_path_part(&ident))
                                 .with_extension("rs"),
-                            src_path.with_file_name(ident.to_string()).join("mod.rs"),
+                            src_path.with_file_name(import_ident_to_path_part(&ident)).join("mod.rs"),
                         ]
                     } else {
                         vec![
                             src_path
                                 .with_extension("")
-                                .with_file_name(ident.to_string())
+                                .with_file_name(import_ident_to_path_part(&ident))
                                 .with_extension("rs"),
                             src_path
                                 .with_extension("")
-                                .with_file_name(ident.to_string())
+                                .with_file_name(import_ident_to_path_part(&ident))
                                 .join("mod.rs"),
                         ]
                     };
