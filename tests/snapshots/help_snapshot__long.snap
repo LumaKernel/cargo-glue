@@ -2,7 +2,7 @@
 source: tests/help-snapshot.rs
 expression: "run(\"--help\")?"
 ---
-cargo-equip <version>
+cargo-glue <version>
 Ryo Yamashita <qryxip@gmail.com>
 
 A Cargo subcommand to bundle your code into one `.rs` file for competitive programming.
@@ -10,11 +10,11 @@ A Cargo subcommand to bundle your code into one `.rs` file for competitive progr
 Use -h for short descriptions and --help for more detials.
 
 USAGE:
-    cargo equip [OPTIONS]
-    cargo equip [OPTIONS] --lib
-    cargo equip [OPTIONS] --bin <NAME>
-    cargo equip [OPTIONS] --example <NAME>
-    cargo equip [OPTIONS] --src <PATH>
+    cargo glue [OPTIONS]
+    cargo glue [OPTIONS] --lib
+    cargo glue [OPTIONS] --bin <NAME>
+    cargo glue [OPTIONS] --example <NAME>
+    cargo glue [OPTIONS] --src <PATH>
 
 OPTIONS:
         --src <PATH>                                  
@@ -234,7 +234,7 @@ OPTIONS:
             Toolchain for expanding procedural macros
 
         --mod-path <MODULE_PATH>                      
-            Expand the libraries to the module [default: crate::__cargo_equip]
+            Expand the libraries to the module [default: crate::__cargo_glue]
 
         --remove <REMOVE>...                          
             Removes
