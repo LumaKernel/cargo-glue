@@ -9,7 +9,7 @@ use proc_macro2::{LineColumn, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet, HashSet, VecDeque},
     env, mem,
     ops::Range,
     str,
@@ -364,6 +364,17 @@ impl<'opt> CodeEdit<'opt> {
                 .map_err(|e| anyhow!("{:?}", e))
                 .with_context(|| format!("could not parse `{}`", src_path))?;
 
+            let mut modded = HashSet::new();
+
+            for item in items.iter() {
+                if let Item::Mod(item) = item {
+                    // Collect items like "mod something;", "pub mod something;"
+                    if item.content.is_none() {
+                        modded.insert(import_ident_to_path_part(&item.ident));
+                    }
+                }
+            }
+
             let replacements = items
                 .into_iter()
                 .flat_map(|item| match item {
@@ -377,6 +388,7 @@ impl<'opt> CodeEdit<'opt> {
                     _ => None,
                 })
                 .map(|(attrs, ident, semi)| {
+                    let ident_path = import_ident_to_path_part(&ident);
                     let paths = if let Some(path) = attrs
                         .iter()
                         .flat_map(Attribute::parse_meta)
@@ -399,15 +411,25 @@ impl<'opt> CodeEdit<'opt> {
                                 .with_extension("rs"),
                             src_path.with_file_name(import_ident_to_path_part(&ident)).join("mod.rs"),
                         ]
-                    } else {
+                    } else if modded.contains(&ident_path) {
                         vec![
                             src_path
                                 .with_extension("")
-                                .with_file_name(import_ident_to_path_part(&ident))
+                                .join(&ident_path)
                                 .with_extension("rs"),
                             src_path
                                 .with_extension("")
-                                .with_file_name(import_ident_to_path_part(&ident))
+                                .join(&ident_path)
+                                .join("mod.rs"),
+                        ]
+                    } else {
+                        vec![
+                            src_path
+                                .with_file_name(&ident_path)
+                                .with_extension("rs"),
+                            src_path
+                                .with_extension("")
+                                .with_file_name(&ident_path)
                                 .join("mod.rs"),
                         ]
                     };
