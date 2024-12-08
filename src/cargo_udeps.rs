@@ -1,6 +1,6 @@
 use crate::{process::ProcessBuilderExt as _, shell::Shell, toolchain, workspace::TargetExt as _};
 use cargo_util::ProcessBuilder;
-use krates::cm as kcm;
+use cargo_metadata as cm;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
@@ -8,8 +8,8 @@ use std::{
 };
 
 pub(crate) fn cargo_udeps(
-    package: &kcm::Package,
-    target: &kcm::Target,
+    package: &cm::Package,
+    target: &cm::Target,
     toolchain: &str,
     shell: &mut Shell,
 ) -> Result<HashSet<String>, String> {

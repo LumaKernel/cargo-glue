@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context as _};
 use cargo_util::ProcessBuilder;
-use krates::cm as kcm;
+use cargo_metadata as cm;
 use maplit::btreeset;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use std::{
 };
 
 pub(super) fn read_non_unlicense_license_file(
-    package: &kcm::Package,
+    package: &cm::Package,
     mine: &[User],
     cache_dir: &Path,
 ) -> anyhow::Result<Option<String>> {
@@ -55,7 +55,7 @@ pub(super) fn read_non_unlicense_license_file(
     }
 }
 
-fn users(package: &kcm::Package, cache_dir: &Path) -> anyhow::Result<BTreeSet<User>> {
+fn users(package: &cm::Package, cache_dir: &Path) -> anyhow::Result<BTreeSet<User>> {
     let path = &cache_dir.join("owners.json");
     let cur_cache = if path.exists() {
         serde_json::from_str(&cargo_util::paths::read(path)?)?
@@ -187,7 +187,7 @@ fn users(package: &kcm::Package, cache_dir: &Path) -> anyhow::Result<BTreeSet<Us
     }
 }
 
-fn read(package: &kcm::Package, cache_dir: &Path) -> Result<Option<String>, Vec<String>> {
+fn read(package: &cm::Package, cache_dir: &Path) -> Result<Option<String>, Vec<String>> {
     let license = package
         .license
         .as_deref()
@@ -286,7 +286,7 @@ fn normalize(license: &str) -> &str {
     }
 }
 
-fn read_git_sha1(package: &kcm::Package) -> anyhow::Result<String> {
+fn read_git_sha1(package: &cm::Package) -> anyhow::Result<String> {
     let json =
         &cargo_util::paths::read(package.manifest_dir().join(".cargo_vcs_info.json").as_ref())?;
     let CargoVcsInfo {
