@@ -10,8 +10,6 @@ use ra_ap_tt::{self as tt, DelimiterKind, Leaf, TokenId};
 use semver::Version;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::workspace::TargetExt;
-
 pub(crate) const MSRV: Version = Version::new(1, 64, 0);
 
 pub(crate) fn list_proc_macro_dylibs<P: FnMut(&cm::PackageId) -> bool>(

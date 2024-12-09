@@ -1,6 +1,6 @@
 use crate::{process::ProcessBuilderExt as _, shell::Shell, toolchain, workspace::TargetExt as _};
-use cargo_util::ProcessBuilder;
 use cargo_metadata as cm;
+use cargo_util::ProcessBuilder;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},

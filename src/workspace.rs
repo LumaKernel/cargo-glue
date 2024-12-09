@@ -90,30 +90,25 @@ pub(crate) fn cargo_check_message_format_json(
         .map(|e| {
             e.into_iter()
                 .map(|mut e| {
-                    match e {
-                        // TODO(dirty): Convert cargo-udep's PackageId representation to
-                        // that of cargo_metadata.
-                        cm::Message::CompilerArtifact(ref mut a) => {
-                            let repr = &a.package_id.repr;
-                            let mut p = repr.splitn(3, ' ');
-                            let (name, ver, url) = match (p.next(), p.next(), p.next()) {
-                                (Some(name), Some(ver), Some(url)) => (name, ver, url),
-                                _ => panic!("unexpected format: {}", repr),
-                            };
-                            let mut url = {
-                                if url.starts_with("(") && url.ends_with(")") {
-                                    url[1..url.len() - 1].to_owned()
-                                } else {
-                                    panic!("unexpected format: {}", repr)
-                                }
-                            };
-                            if url.contains('#') {
-                                url = url.split('#').next().unwrap().to_owned();
+                    if let cm::Message::CompilerArtifact(ref mut a) = e {
+                        let repr = &a.package_id.repr;
+                        let mut p = repr.splitn(3, ' ');
+                        let (name, ver, url) = match (p.next(), p.next(), p.next()) {
+                            (Some(name), Some(ver), Some(url)) => (name, ver, url),
+                            _ => panic!("unexpected format: {}", repr),
+                        };
+                        let mut url = {
+                            if url.starts_with("(") && url.ends_with(")") {
+                                url[1..url.len() - 1].to_owned()
+                            } else {
+                                panic!("unexpected format: {}", repr)
                             }
-                            let repr = format!("{}#{}@{}", url, name, ver);
-                            a.package_id = cm::PackageId { repr };
+                        };
+                        if url.contains('#') {
+                            url = url.split('#').next().unwrap().to_owned();
                         }
-                        _ => {}
+                        let repr = format!("{}#{}@{}", url, name, ver);
+                        a.package_id = cm::PackageId { repr };
                     }
                     e
                 })

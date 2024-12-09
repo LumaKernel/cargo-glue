@@ -4,8 +4,8 @@ use crate::{
     User,
 };
 use anyhow::{anyhow, Context as _};
-use cargo_util::ProcessBuilder;
 use cargo_metadata as cm;
+use cargo_util::ProcessBuilder;
 use maplit::btreeset;
 use semver::Version;
 use serde::{Deserialize, Serialize};
