@@ -766,7 +766,7 @@ fn bundle(
 
     let out_dirs = workspace::list_out_dirs(metadata, &cargo_messages_for_out_dirs);
 
-    let macro_expander = cargo_messages_for_proc_macro_dll_paths
+    let mut macro_expander = cargo_messages_for_proc_macro_dll_paths
         .as_ref()
         .map(|cargo_messages_for_proc_macro_dll_paths| {
             let proc_macro_srv_exe = &toolchain::find_rust_analyzer_proc_macro_srv(
@@ -827,7 +827,7 @@ fn bundle(
         code = rust::process_bin(
             cargo_glue_mod_name,
             &bin_target.src_path,
-            { macro_expander }.as_mut(),
+            macro_expander.as_mut(),
             |extern_crate_name| {
                 metadata
                     .dep_lib_by_extern_crate_name(&bin_package.id, extern_crate_name)
@@ -852,6 +852,11 @@ fn bundle(
             if let Some(out_dir) = out_dirs.get(pkg) {
                 edit.expand_includes(out_dir)?;
             }
+
+            if let Some(proc_macro_expander) = macro_expander.as_mut() {
+                edit.expand_proc_macros(proc_macro_expander)?;
+            }
+
             Ok((*pkg, (*krate, &**pseudo_extern_crate_name, edit)))
         })
         .collect::<anyhow::Result<BTreeMap<_, _>>>()?;

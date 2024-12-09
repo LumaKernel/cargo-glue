@@ -518,7 +518,7 @@ impl<'opt> CodeEdit<'opt> {
         Ok(())
     }
 
-    fn process_extern_crate_in_bin(
+    pub fn process_extern_crate_in_bin(
         &mut self,
         is_lib_to_bundle: impl FnMut(&str) -> bool,
     ) -> anyhow::Result<()> {
@@ -674,6 +674,7 @@ impl<'opt> CodeEdit<'opt> {
             self.force_apply()?;
 
             let code_lines = &self.string.split('\n').collect::<Vec<_>>();
+            println!("{}", &self.string);
 
             let mut output = Ok(None);
             AttributeMacroVisitor {
