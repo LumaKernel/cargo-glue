@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Context as _};
 use cargo_metadata as cm;
 use itertools::chain;
-use krates::cm as kcm;
 use maplit::btreemap;
 use ra_ap_paths::AbsPath;
 use ra_ap_proc_macro_api::{
@@ -23,7 +22,7 @@ pub(crate) fn list_proc_macro_dylibs<P: FnMut(&cm::PackageId) -> bool>(
             cm::Message::CompilerArtifact(artifact) => Some(artifact),
             _ => None,
         })
-        .filter(|cm::Artifact { target, .. }| *target.kind == ["proc-macro".to_owned()])
+        .filter(|cm::Artifact { target, .. }| target.is_proc_macro())
         .filter(|cm::Artifact { package_id, .. }| filter(package_id))
         .flat_map(
             |cm::Artifact {
@@ -40,15 +39,15 @@ pub(crate) fn list_proc_macro_dylibs<P: FnMut(&cm::PackageId) -> bool>(
 }
 
 pub struct ProcMacroExpander<'msg> {
-    custom_derive: BTreeMap<String, (&'msg kcm::PackageId, ProcMacro)>,
-    func_like: BTreeMap<String, (&'msg kcm::PackageId, ProcMacro)>,
-    attr: BTreeMap<String, (&'msg kcm::PackageId, ProcMacro)>,
+    custom_derive: BTreeMap<String, (&'msg cm::PackageId, ProcMacro)>,
+    func_like: BTreeMap<String, (&'msg cm::PackageId, ProcMacro)>,
+    attr: BTreeMap<String, (&'msg cm::PackageId, ProcMacro)>,
 }
 
 impl<'msg> ProcMacroExpander<'msg> {
     pub(crate) fn spawn(
         proc_macro_srv_exe: &AbsPath,
-        dylib_paths: &BTreeMap<&'msg kcm::PackageId, &'msg AbsPath>,
+        dylib_paths: &BTreeMap<&'msg cm::PackageId, &'msg AbsPath>,
     ) -> anyhow::Result<Self> {
         let server = ProcMacroServer::spawn(proc_macro_srv_exe.to_path_buf())?;
 
@@ -81,7 +80,7 @@ impl<'msg> ProcMacroExpander<'msg> {
 
     pub(crate) fn macro_names(
         &self,
-    ) -> impl Iterator<Item = (&'msg kcm::PackageId, BTreeSet<&str>)> {
+    ) -> impl Iterator<Item = (&'msg cm::PackageId, BTreeSet<&str>)> {
         let mut names = BTreeMap::<_, BTreeSet<_>>::new();
         for (name, &(pkg, _)) in chain!(&self.custom_derive, &self.func_like, &self.attr) {
             names.entry(pkg).or_default().insert(&**name);
