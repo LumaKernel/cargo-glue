@@ -674,7 +674,6 @@ impl<'opt> CodeEdit<'opt> {
             self.force_apply()?;
 
             let code_lines = &self.string.split('\n').collect::<Vec<_>>();
-            println!("{}", &self.string);
 
             let mut output = Ok(None);
             AttributeMacroVisitor {
